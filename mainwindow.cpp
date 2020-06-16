@@ -4,12 +4,50 @@
 #include <stdlib.h>
 #include <winscard.h>
 #include <QDebug>
+#include <qhexview.h>
+#include <document/buffer/qmemorybuffer.h>
+#include <QColor>
+#include <Qt>
+
+#include <QtWidgets>
+
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+
+
+    // Load data from In-Memory Buffer...
+
+    QString test= "test123";
+    QByteArray test2 = test.toLocal8Bit().data();
+    QHexDocument* document = QHexDocument::fromMemory<QMemoryBuffer>(test2);
+    // ...from a generic I/O device...
+ //   QHexDocument* document = QHexDocument::fromDevice<QMemoryBuffer>(iodevice);
+    /* ...or from File */
+ //   QHexDocument* document = QHexDocument::fromFile<QMemoryBuffer>("data.bin");
+
+    QHexView* hexview = new QHexView(ui->widget);
+    hexview->setDocument(document);                  // Associate QHexEditData with this QHexEdit
+
+    // Document editing
+    QByteArray data = document->read(24, 78);        // Read 78 bytes starting to offset 24
+    document->insert(4, "Hello QHexEdit");           // Insert a string to offset 4
+    document->remove(6, 10);                         // Delete bytes from offset 6 to offset 10
+    document->replace(30, "New Data");               // Replace bytes from offset 30 with the string "New Data"
+
+    // Metatadata management
+    QHexMetadata* hexmetadata = document->metadata();
+
+    hexmetadata->background(6, 0, 10,Qt::red);      // Highlight background to line 6, from 0 to 10
+    hexmetadata->foreground(8, 0, 15, Qt::darkBlue); // Highlight foreground to line 8, from 0 to 15
+ //   hexmetadata->comment(16, "I'm a comment!");      // Add a comment to line 16
+    hexmetadata->clear();                            // Reset styling
+
+
+
 }
 
 MainWindow::~MainWindow()
