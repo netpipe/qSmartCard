@@ -1,7 +1,7 @@
 # qSmartCard
 SmartCard Read/Writer application for writing bin files and executing scripts
 
-![qSmartCard ](screenshot1.png)
+![qSmartCard ](screenshot.png)
 
 WIP
 
