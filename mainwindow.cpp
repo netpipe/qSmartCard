@@ -9,6 +9,10 @@
 #include <QColor>
 #include <Qt>
 
+#ifdef PYTHON
+#include <pyMain.h>
+#endif
+
 #include <QtWidgets>
 
 
