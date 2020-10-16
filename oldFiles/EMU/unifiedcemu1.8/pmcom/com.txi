@@ -1,0 +1,2515 @@
+\input texinfo   @c -*-texinfo-*-
+@c %**start of header
+@setfilename com.inf
+@c %**end of header
+
+@node Top, Foreword, , (dir)
+
+@display
+
+COMLib, version 1.0
+
+RS-232 communication library
+User's Manual
+
+May/1998
+
+Program and Text Copyright, ( C ) 1998, Peter Marinov
+All Rights Reserved.
+
+@end display
+
+@menu
+* Foreword::            Foreword to version 1.0
+* People::              Author and who helped
+* Functions::           Functions
+* Examples::            Examples
+* Concepts::            Conceptual index
+@end menu
+
+@node Foreword, People, top, top
+@comment node-name, next, previous, up
+@chapter Foreword to version 1.0
+
+RS-232 communication is a simple and cheap way to connect two devices.
+No one is surprised of the rich variety of communication libraries
+that could be found outside -- freeware, shareware; advertised in the
+magazines or deeply covered on some ftp server directory waiting to be
+picked up. Most of the libraries may be fulfill the needs of their
+users -- to communicate with some kind of device connected to a PC;
+and little of them complete one area that is not very famous but is
+overwhelming in our everyday life -- the area of the embedded systems.
+Developing embedded devices often imposes RS-232 as the only mean to
+communicate with a PC.
+
+Using DOS for desktop purposes may be is not very useful, but most of
+the cases where devoted PC (or industrial strength PC board) works as
+frontend for some kind of embedded system DOS is best. The libraries I've
+found useful for a common RS-232 communication cannot cover the
+stringent criteria of communication via some kind of sophisticated
+protocols where the interrupt-driven response is the only reasonable
+realization.
+
+Writing this library I aimed a few things: sharing IRQs between COM
+ports, supporting 9 bit protocols for multiprocessor communications,
+supporting user supplied event call-back functions, having rich set of
+API functions, DJGPP and BC support. Supporting DJGPP is logical as
+this is the only compiler that supports programing under DOS and is
+still undergoing some evolution; and the large set of sources of
+acompaing programs and utilities makes it very attractive. I wanted to
+contribute to DJGPP writing this library.
+
+@node People, Functions, Foreword, top
+@comment node-name, next, previous, up
+@chapter Author and Credits
+
+@subheading Author: Peter Marinov (mar22@@usa.net)
+COMLib author.
+
+Domain of interests: 8051 microcontrollers, Z180 microcontrollers,
+80x86 processors, C/C++ programming (BorlandC, GNUC, VisialC), Windows
+programming (API prevails).
+
+@subheading Tzvetan Mikov (mikov@@usa.net)
+
+In this project: Helped with some ideas about managing the queue and managing hardware
+interrupt controllers.
+
+Domain of interests: 8051 microcontrollers programming, compilers
+(designing compilers), 80x86 processors, C/C++ programming (BorlandC,
+WatcomC, GNUC, VisualC, Windows programming (device drivers, API,
+MFC).
+
+@subheading Krassimir Kossev (kkk4@@usa.net)
+
+In this project: Hardware support and diagnostics.
+
+Domain of interests: 8051 microcontroller systems design and
+programming, various boards design and diagnostics. HAM Radio.
+
+@subheading Erkin Karanasuf (erk95@@usa.net)
+
+In this project: Took part in developing 9bit protocols support.
+
+Domain of interests: 8051 microcontroller systems design. ROM
+emulators design.
+
+@subheading ACKNOLEDGEMENTS:
+
+@display
+The_Serial_Port -- Serial port compilation of information
+(C) Copyright 1993 - 1995 by Christian Blum <chris@@phil.uni-sb.de>
+all rights reserved.
+The home location for this document is:
+ftp://ftp.phil.uni-sb.de/pub/staff/chris/The_Serial_Port
+Other serial port stuff mentioned in this document can be found in the
+same directory.
+-- This is the most comprehensive description of serial
+port hardware and software operation I've ever seen.
+
+DZComm - serial communication add-on for Allegro.
+Copyright 1997 Dim Zegebart, Moscow Russia.
+E-mail zager@@post.comstar.ru
+http://www.geocities.com/siliconvalley/pines/7817
+-- I used his work as a reference.
+
+BCSIO - serial communication library
+written by Bill Currie <billc@@blackmagic.tait.co.nz>
+-- I used his work as a reference.
+
+DJGPP - A port of GNU gcc for DOS by DJ Delorie and team.
+http://www.delorie.com
+-- I used their work to compile for 32-bit DOS.
+@end display
+
+@node Functions, COMInit, People, top
+@comment node-name, next, previous, up
+@chapter Functions
+
+@menu
+Port open and close
+
+* COMInit::             Initial setup of the library
+* COMShutDown::         Library shut down function
+* COMPortOpen::         General port open function
+* COMPortClose::        General port close function
+* COMPortCloseAll::     Closes all the COM ports opened by COMPortOpen.
+
+Setting and checking parameters
+
+* COMSetHardwareParameters::    Changes default hardware settings
+* COMGetHardwareParameters::    Gets hardware parameters
+* COMDetect::                   Detects chipset
+* COMGetChipset::               Returns what is detected by COMPortOpen
+* COMIsFIFOAvailable::          Checks whether the chipset has hardware FIFOs
+* COMEnableHardwareFIFO::       Enables the hardware FIFO if present
+* COMDisableHardwareFIFO::      Disables the hardware FIFO
+* COMIsFIFOEnabled::            Checks the current hardware FIFOs status
+* COMSetRXThreshold::           Sets RX hardware FIFO trigger level
+* COMSetTXThreshold::           Sets TX block output size
+* COMGetRXThreshold::           Returns the RX hardware FIFO trigger level
+* COMGetTXThreshold::           Returns the TX block output size
+* COMSetTransmitParameters::    Sets the transmission parameters
+* COMGetTransmitParameters::    Returns the transmission parameters
+* COMSetFlowControl::
+* COMGetFlowControl::
+* COMSetEventHandler::  Attaches user handler to acknowledge COM events
+* COMGetEventHandler::  Returns the address of the user handler
+* COMSetTXQueueSize::   Sets new value for the tx fifo size
+* COMGetTXQueueSize::   Returns the current size of the tx fifo
+* COMSetRXQueueSize::   Sets new value for the rx fifo size
+* COMGetRXQueueSize::   Returns the current size of the rx fifo
+* User event handler::  Details about the user event handler
+
+Send
+
+* COMStat::             Common character structure description
+* COMWriteChar::        Writes a character to the port
+* COMWriteCharTimed::   Writes a character, checks timeout
+* COMWriteBuffer::      Writes block of characters to the port
+* COMWriteBufferTimed:: Writes block of characters, checks timeout
+* COMClearTXBuffer::    Clears transmit buffer contents
+* COMTXBufferFree::     Returns the amount of free space in the tx buffer
+* COMTXBufferUsed::     Returns the amount of characters in the tx buffer
+* COMIsTXBufferSent::   Checks where there's transmission is progress
+
+Receive
+
+* COMReadChar::         Reads a character from the port
+* COMReadCharTimed::    Waits for a character, checks timeout
+* COMReadBuffer::       Reads a block of characters from the rx buffer
+* COMReadBufferTimed::  Waits for a block of characters, checks timeout
+* COMPeekChar::         Reads a character but doesn't extract it
+* COMClearRXBuffer::    Clear receive buffer contents
+* COMRXBufferFree::     Returns the amount of free space in the rx buffer
+* COMRXBufferUsed::     Returns the amount of characters in the rx buffer
+
+Modem
+
+* COMGetModemStatus::   Returns the status of the incoming modem lines
+* COMGetCts::           Returns the status of the incoming CTS line
+* COMGetDsr::           Returns the status of the incoming DSR line
+* COMGetRI::            Returns the status of the incoming RI line
+* COMGetCD::            Returns the status of the incoming CD line
+* COMSetDtr::           Sets the status of the output DTR line
+* COMSetRts::           Sets the status of the output RTS line
+
+Diagnostic
+
+* COMGetDiagnosticCounters::     Returns COM event counters
+
+@end menu
+
+@c --------------------------------------------------------
+@node COMInit, COMShutDown, Functions, Functions
+@comment node-name, next, previous, up
+@chapter COMInit
+@cindex open (COMInit)
+
+@subheading Syntax:
+ int COMInit(void)
+
+@subheading Description:
+Initial setup of the library. This function can be invoked only
+once prior calling any other functions of the library. COMPortOpen()
+automatically calls COMInit() if library is not explicitly set up by
+a prior user call.
+
+Determines the port addresses for COM1 to COM4 as set by BIOS. Set's
+their default IRQ dispositions. Prepares the library for 32-bit
+protect mode interrupt-driven operation. Registers an exit function to
+properly shut down the library prior exiting the program.
+
+The only purpose of explicitly call this functions is to call
+COMDetect() or COMGetHardwareParameters() for a COM port prior
+COMPortOpen(). In most of the cases using this library you will need
+to explicitly call COMInit() very rarely.
+
+@subheading Returns:
+
+1 - on success.
+
+0 - init failed. The only problem may rise if the DPMI server
+denies to lock the memory regions that operate under interrupt
+requests.
+
+@subheading See also:
+@display
+@xref{COMShutDown}
+@xref{COMSetHardwareParameters}
+@xref{Example1}
+@end display
+
+@c --------------------------------------------------------
+@node COMShutDown, COMPortOpen, COMInit, Functions
+@comment node-name, next, previous, up
+@chapter COMShutDown
+@cindex close (COMShutDown)
+
+@subheading Syntax:
+void COMShutDown(void)
+
+@subheading Description:
+Makes any necessary shut down operations of the library. Should be
+called explicitely only if you intent to terminate using the library
+far prior exiting the program, as this function will be automaticaly
+invoked on program exit.
+
+@subheading See also:
+@xref{COMInit}
+
+@c --------------------------------------------------------
+@node COMPortOpen, COMPortClose, COMShutDown, Functions
+@comment node-name, next, previous, up
+@chapter COMPortOpen
+@cindex open (COMPortOpen)
+
+@subheading Syntax:
+int COMPortOpen(int nCOM, long nBauds, int nWordLen, int nParity,
+  int nStopBits, int nFlowControl, void (*EventHandler)(int nEvent))
+
+@subheading Description:
+Opens a specific COM port for operation. The initial operating
+conditions are determined by the arguments.
+
+Functions that can be invoked prior invoking COMPortOpen for a
+specific COM port: COMSetPortHardware(), COMGetPortHardware(),
+COMSetTXQueueSize(), COMSetRXQueueSize() and COMDetect().
+
+COMSetPortHardware() should be invoked prior calling COMPortOpen if
+working with ports in range COM5-COM35 as for these ports there are no
+default io addresses or irq lines.
+
+COMInit() is automatically called if not explicitely invoked prior 
+COMPortOpen().
+
+Default size of tx and rx queues can be changed by calling
+COMSetTXQueueSize() and COMSetRXQueueSize() prior calling COMPortOpen() for
+a specific COM port. Default values are 255 characters for both tx and
+rx queues.
+
+If 9 bit protocol is selected the library will disable the hardware
+FIFOs. 9 bit protocol is operational only when on every character
+sent an IRQ occures. COMEnableHardwareFIFO() will check for this mode
+and will not enable the FIFOs if the COM port is working in 9 bit mode.
+
+@subheading Parameters:
+
+nCOM - valid values are 0 to 34. The definition 'COMMAX' determines
+the maximum allowed number of simultaneously opened COM
+ports. There are definitions for 'COM1' to 'COM35' to
+supply this parameter.
+
+nBauds - valid values 1 to 115200.
+
+nWordLen - valid values 5, 6, 7, 8.
+
+nParity - valid values 'N' - no parity, 'E' - even parity, 'O' - odd
+parity, 'S' - space, 'M' - mark, '9' - 9bit protocols
+
+nStopBits - valid values are 1 and 2.
+
+nFlowControl - XON/XOFF, RTS/CTS, DTR/DSR. Not ready!
+
+EventHandler - Address of an user function to be invoked whenever an
+COM port event occurres. Set NULL for no function.
+
+@subheading Returns:
+
+0 - COM port is successfully opened for operations.
+
+COMERR_NOCHIP - There's no UART chip detected at the specified COM
+port io address.
+
+COMERR_NOMEMORY - No memory available to allocate tx and rx fifo
+buffers. Or in DPMI32 environment this error may indicate inability to
+be locked these buffers.
+
+COMERR_GENERAL - Only when COMPortOpen() is invoked for first time and
+COMInit() is not explicitely called, this error code indicates that library
+setup failed.
+
+@subheading See also:
+@display
+@xref{COMInit}
+@xref{COMPortClose}
+@xref{COMPortCloseAll}
+@xref{COMSetHardwareParameters}
+@xref{COMSetTXQueueSize}
+@xref{COMSetRXQueueSize}
+@xref{COMDetect}
+@xref{User event handler}
+@xref{Example2}
+@end display
+
+@c --------------------------------------------------------
+@node COMPortClose, COMPortCloseAll, COMPortOpen, Functions
+@comment node-name, next, previous, up
+@chapter COMPortClose
+@cindex close (COMPortClose)
+
+@subheading Syntax:
+void COMPortClose(int nCOM)
+
+@subheading Description:
+Closes a COM port. Disposes the allocated tx and rx queues, disables
+the COM port interrupts, detaches the IRQ handlers and disables the
+hardware FIFOs (if available). Every COM port opened by COMPortOpen()
+will be automaticaly closed by calling COMPortCloseAll() upon exiting the
+program.
+
+@subheading Parameters:
+
+nCOM - valid values are 0 to 34. There are definitions for 'COM1' to
+'COM35' to supply this parameter.
+
+@subheading See also:
+@display
+@xref{COMPortOpen}
+@xref{COMPortCloseAll}
+@end display
+
+@c --------------------------------------------------------
+@node COMPortCloseAll, COMSetHardwareParameters, COMPortClose, Functions
+@comment node-name, next, previous, up
+@chapter COMPortCloseAll
+@cindex close (COMPortCloseAll)
+
+@subheading Syntax:
+void COMPortCloseAll(void)
+
+@subheading Description:
+Closes all the COM ports opened by COMPortOpen. Disposes the allocated
+tx and rx queues, disables the COM port interrupts, detaches the IRQ
+handlers and disables the hardware FIFOs (if available). Every COM
+port opened by COMPortOpen() will be automaticaly closed by calling
+COMPortCloseAll() upon exiting the program.
+
+@subheading See also:
+@display
+@xref{COMPortOpen}
+@xref{COMPortClose}
+@end display
+
+@c --------------------------------------------------------
+@node COMSetHardwareParameters, COMGetHardwareParameters, COMPortCloseAll, Functions
+@comment node-name, next, previous, up
+@chapter COMSetHardwareParameters
+@cindex open (COMSetHardwareParameters)
+@cindex hardware (COMSetHardwareParameters)
+
+@subheading Syntax:
+void COMSetHardwareParameters(int nCOM, int nIRQ, int nCOMAddress)
+
+@subheading Description:
+Sets the hardware parameters for specific COM port as io address and
+IRQ. For the ports COM1 up to COM4 there are default parameters set by
+BIOS. COMInit() reads these parameters from the BIOS data area. Call
+COMSetHardwareParameters() when working with non-standard IRQs and
+io addresses for COM1 up to COM4. For all the ports COM5 to COM35 it
+is mandatory to implicitly set the hardware parameters. As these
+parameters are used by COMPortOpen(), COMSetHardwareParameters() should be
+invoked prior calling COMPortOpen() for a specific port.
+
+@subheading Parameters:
+
+nCOM - valid values are 0 to 34. There are definitions for 'COM1' to
+'COM35' to supply this parameter.
+
+nIRQ - valid values are 0 to 15. There are definitions for 'IRQ0' to
+'IRQ15' to supply this parameter.
+
+nCOMAddress - A value for the io address.
+
+@subheading Standard settings:
+@display
+Below is a list of the standard settings:
+
+Port    Base    Address
+COM1    0x3f8   4
+COM2    0x2f8   3
+COM3    0x3e8   4
+COM4    0x2e8   3
+@end display
+
+@subheading See also:
+@display
+@xref{COMInit}
+@xref{COMPortOpen}
+@xref{COMGetHardwareParameters}
+@end display
+
+@c --------------------------------------------------------
+@node COMGetHardwareParameters, COMDetect, COMSetHardwareParameters, Functions
+@comment node-name, next, previous, up
+@chapter COMGetHardwareParameters
+@cindex info (COMGetHardwareParameters)
+@cindex hardware (COMGetHardwareParameters)
+
+@subheading Syntax:
+void COMGetHardwareParameters(int nCOM, int *pIRQ, int *pCOMAddress)
+
+@subheading Description:
+Gets the hardware parameters for a specific port as IRQ and io
+address. For ports COM5 to COM35 may be called providing that
+COMSetHardwareParameters() was invoked to set these parameters as there
+are no default values to initialize these ports.
+
+@subheading Parameters:
+
+nCOM - valid values are 0 to 34. There are definitions for 'COM1' to
+'COM35' to supply this parameter.
+
+pIRQ - address of an integer variable where to put the IRQ value.
+
+pCOMAddress - address of an integer variable where to put the io
+address.
+
+@subheading See also:
+@display
+@xref{COMSetHardwareParameters}
+@xref{Example1}
+@xref{Example2}
+@end display
+
+@c --------------------------------------------------------
+@node COMDetect, COMGetChipset, COMGetHardwareParameters, Functions
+@comment node-name, next, previous, up
+@chapter COMDetect
+@cindex info (COMDetect)
+@cindex hardware (COMDetect)
+
+@subheading Syntax:
+int COMDetect(int nCOM)
+
+@subheading Description:
+General COM port chipset detection routine. This function can be
+called only before invoking COMPortOpen() for specific COM port.
+COMSetHardwareParameters() should provide parameters for ports COM5 to
+COM35 before calling COMDetect().
+
+@subheading Parameters:
+
+nCOM - valid values are 0 to 34. There are definitions for 'COM1' to
+'COM35' to supply this parameter.
+
+@subheading Returns:
+
+Returns an integer that identifies the specific UART chipset. There
+are definitions to check against the result of this function as
+'CHIP8250', 'CHIP16450', 'CHIP16550', 'CHIP16550A', 'NOCHIP'.
+
+@subheading See also:
+@display
+@xref{COMSetHardwareParameters}
+@xref{COMGetChipset}
+@xref{Example1}
+@end display
+
+@c --------------------------------------------------------
+@node COMGetChipset, COMIsFIFOAvailable, COMDetect, Functions
+@comment node-name, next, previous, up
+@chapter COMGetChipset
+@cindex info (COMGetChipset)
+@cindex hardware (COMGetChipset)
+
+@subheading Syntax:
+int COMGetChipset(int nCOM)
+
+@subheading Description:
+Returns the chips set as was detected by COMPortOpen(). COMPortOpen()
+calls COMDetect() to get the chip set when opening this COM port.
+
+COMGetChipset() can be called only afterinvoking COMPortOpen() for a 
+specific COM port.
+
+What is the difference between COMDetect() and COMGetChipset()? The late
+reads a variable from the internal library data structures in contrast
+with the first that does the real COM port detection. COMDetect() is a
+kind of "independent" function that can be invoked for different COM
+ports that need not to be opened for general operation.
+
+@subheading Parameters:
+
+nCOM - valid values are 0 to 34. There are definitions for 'COM1' to
+'COM35' to supply this parameter.
+
+@subheading Returns:
+
+Returns an integer that identifies the specific UART chipset. There
+are definitions to check against the result of this function as
+'CHIP8250', 'CHIP16450', 'CHIP16550', 'CHIP16550A'. This function can
+not return 'NOCHIP' as in this case COMPortOpen() would never successfully
+open the port for operation.
+
+@subheading See also:
+@display
+@xref{COMPortOpen}
+@xref{Example2}
+@end display
+
+@c --------------------------------------------------------
+@node COMIsFIFOAvailable, COMEnableHardwareFIFO, COMGetChipset, Functions
+@comment node-name, next, previous, up
+@chapter COMIsFIFOAvailable
+@cindex info (COMIsFIFOAvailable)
+@cindex hardware (COMIsFIFOAvailable)
+
+@subheading Syntax:
+int COMIsFIFOAvailable(int nCOM)
+
+@subheading Description:
+Checks whether the COM port chipset supports hardware FIFO operations.
+This function relies on what COMPortOpen() detects as chipset, that is
+why this function shouldn't be called prior calling COMPortOpen().
+
+@subheading Parameters:
+
+nCOM - valid values are 0 to 34. There are definitions for 'COM1' to
+'COM35' to supply this parameter.
+
+@subheading Returns:
+0 - The chipset doesn't provide hardware FIFOs.
+
+1 - The chipset has hardware FIFOs.
+
+@subheading See also:
+@display
+@xref{COMEnableHardwareFIFO}
+@xref{COMDisableHardwareFIFO}
+@xref{COMIsFIFOEnabled}
+@xref{Example2}
+@end display
+
+@c --------------------------------------------------------
+@node COMEnableHardwareFIFO, COMDisableHardwareFIFO, COMIsFIFOAvailable, Functions
+@comment node-name, next, previous, up
+@chapter COMEnabeleHardawreFIFO
+@cindex hardware (COMEnabeleHardawreFIFO)
+
+@subheading Syntax:
+void COMEnableHardwareFIFO(int nCOM)
+
+@subheading Description:
+Enables the hardware FIFO if present. This function relies on what
+COMPortOpen() detects as chipset, that is why this function shouldn't be
+called prior calling COMPortOpen().
+
+If selecting 9 bit protocol the library will disable the hardware
+FIFOs. 9bit protocols are operational only while on every characters
+sent occurs an IRQ. COMEnableHardwareFIFO() will check for this mode
+and won't enable the FIFOs if the COM port is working in 9 bit mode.
+
+@subheading Parameters:
+
+nCOM - valid values are 0 to 34. There are definitions for 'COM1' to
+'COM35' to supply this parameter.
+
+@subheading See also:
+@display
+@xref{COMDisableHardwareFIFO}
+@xref{COMIsFIFOEnabled}
+@end display
+
+@c --------------------------------------------------------
+@node COMDisableHardwareFIFO, COMIsFIFOEnabled, COMEnableHardwareFIFO, Functions
+@comment node-name, next, previous, up
+@chapter COMDisableHardwareFIFO
+@cindex hardware (COMDisableHardwareFIFO)
+
+@subheading Syntax:
+void COMDisableHardwareFIFO(int nCOM)
+
+@subheading Description:
+Disables the hardware FIFO. This function relies on what COMPortOpen()
+detects as chipset, that is why this function shouldn't be called
+prior calling COMPortOpen().
+
+@subheading Parameters:
+
+nCOM - valid values are 0 to 34. There are definitions for 'COM1' to
+'COM35' to supply this parameter.
+
+@subheading See also:
+@display
+@xref{COMEnableHardwareFIFO}
+@xref{COMIsFIFOEnabled}
+@end display
+
+@c --------------------------------------------------------
+@node COMIsFIFOEnabled, COMSetRXThreshold, COMDisableHardwareFIFO, Functions
+@comment node-name, next, previous, up
+@chapter COMIsFIFOEnabled
+@cindex info (COMIsFIFOEnabled)
+@cindex hardware (COMIsFIFOEnabled)
+
+@subheading Syntax:
+int COMIsFIFOEnabled(int nCOM)
+
+@subheading Description:
+Returns 0 if the hardware FIFOs for the specific COM port are
+disabled. This function relies on what COMPortOpen() sets as a flag for
+the hardware FIFO status, that is why this function shouldn't be
+called prior calling COMPortOpen().
+
+@subheading Parameters:
+
+nCOM - valid values are 0 to 34. There are definitions for 'COM1' to
+'COM35' to supply this parameter.
+
+@subheading See also:
+@display
+@xref{COMEnableHardwareFIFO}
+@xref{COMDisableHardwareFIFO}
+@xref{Example2}
+@end display
+
+@c --------------------------------------------------------
+@node COMSetRXThreshold, COMSetTXThreshold, COMIsFIFOEnabled, Functions
+@comment node-name, next, previous, up
+@chapter COMSetRXThreshold
+@cindex hardware (COMSetRXThreshold)
+
+@subheading Syntax:
+void COMSetRXThreshold(int nCOM, int nRXThreshold)
+
+@subheading Description:
+This function allows you to control the trigger level of the hardware RX
+FIFO. The levels available are 1, 4, 8 and 14. By default 8 is set.
+Normally when transmitting or receiving, the COM generates one
+interrupt for every character sent or received. For 2400 bps, typically
+this is 240/second. For 115,200 bps, this means 11,520/second. With FIFOs
+enabled, the number of interrupts is greatly reduced. Q: Why 8 is choosen
+for default value? A: If an interrupt is requested by the COM and the
+PC is busy to handle the IRQ, the COM will continue to collect characters by
+reaching 14. If your program responds fast to the other intercepted IRQs or
+if there're no other intercepted IRQs then RX trigger level can be incresed
+to 14. This value is stored in an internal variable for this COM port and
+when COMEnableHardwareFIFO() is called the value is set to the very COM port.
+It is best to call this function before opening a port by calling 
+COMPortOpen().
+
+@subheading Parameters:
+
+nCOM - valid values are 0 to 34. There are definitions for 'COM1' to
+'COM35' to supply this parameter.
+            
+nRXThreshold - a value to set receive hardware FIFO trigger level.
+Valid values are 1, 4, 8 and 14.
+
+@subheading See also:
+@display
+@xref{COMEnableHardwareFIFO}
+@xref{COMDisableHardwareFIFO}
+@xref{COMIsFIFOAvailable}
+@xref{COMGetRXThreshold}
+@end display
+
+@c --------------------------------------------------------
+@node COMSetTXThreshold, COMGetRXThreshold, COMSetRXThreshold, Functions
+@comment node-name, next, previous, up
+@chapter COMSetTXThreshold
+@cindex hardware (COMSetTXThreshold)
+
+@subheading Syntax:
+void COMSetRXThreshold(int nCOM, int nRXThreshold)
+
+@subheading Description:
+Normally if a hardware FIFO is available the characters are transmitted
+in portions of 16 and this greatly reduces the number of COM IRQs. If
+by any reason you would like to decrese the size of this portion use
+this function. This value is stored in an internal variable for this
+COM port and will be used next time a TX IRQ occures.
+
+@subheading Parameters:
+
+nCOM - valid values are 0 to 34. There are definitions for 'COM1' to
+'COM35' to supply this parameter.
+            
+nTXThreshold - a value to set receive hardware FIFO trigger level.
+Valid values are in range from 1 to 16.
+
+@subheading See also:
+@display
+@xref{COMEnableHardwareFIFO}
+@xref{COMDisableHardwareFIFO}
+@xref{COMIsFIFOAvailable}
+@xref{COMSetRXThreshold}
+@xref{COMGetTXThreshold}
+@end display
+
+@c --------------------------------------------------------
+@node COMGetRXThreshold, COMGetTXThreshold, COMSetTXThreshold, Functions
+@comment node-name, next, previous, up
+@chapter COMGetRXThreshold
+@cindex info (COMSetRXThreshold)
+
+@subheading Syntax:
+int COMGetRXThreshold(int nCOM)
+
+@subheading Description:
+Returns the hardware receive FIFO trigger level. This is read from
+and internal variable rather that get from COM hardware.
+
+@subheading Parameters:
+
+nCOM - valid values are 0 to 34. There are definitions for 'COM1' to
+'COM35' to supply this parameter.
+
+@subheading See also:
+@display
+@xref{COMEnableHardwareFIFO}
+@xref{COMDisableHardwareFIFO}
+@xref{COMIsFIFOAvailable}
+@xref{COMSetRXThreshold}
+@xref{COMGetTXThreshold}
+@end display
+
+@c --------------------------------------------------------
+@node COMGetTXThreshold, COMSetTransmitParameters, COMGetRXThreshold, Functions
+@comment node-name, next, previous, up
+@chapter COMGetTXThreshold
+@cindex info (COMGetTXThreshold)
+
+@subheading Syntax:
+int COMGetTXThreshold(int nCOM)
+
+@subheading Description:
+Returns the size of the portion transmitted at IRQ in case there's transmit
+hardware FIFO available.
+
+@subheading Parameters:
+
+nCOM - valid values are 0 to 34. There are definitions for 'COM1' to
+'COM35' to supply this parameter.
+
+@subheading See also:
+@display
+@xref{COMEnableHardwareFIFO}
+@xref{COMDisableHardwareFIFO}
+@xref{COMIsFIFOAvailable}
+@xref{COMSetRXThreshold}
+@end display
+
+@c --------------------------------------------------------
+@node COMSetTransmitParameters, COMGetTransmitParameters, COMGetTXThreshold, Functions
+@comment node-name, next, previous, up
+@chapter COMSetTransmitParameters
+@cindex hardware (COMSetTransmitParameters)
+
+@subheading Syntax:
+void COMSetTransmitParameters(int nCOM, long nBauds, int nWordLen,
+  int nParity, int nStopBits)
+
+@subheading Description:
+Usually transmission parameter are set by COMPortOpen().
+COMSetTransmitParameters() is to be used if later it is necessary to
+change the initial parameters.
+
+@subheading Parameters:
+nCOM - valid values are 0 to 34. The definition 'COMMAX' determines
+the maximum allowed number of simultaneously opened COM
+ports. There are definitions for 'COM1' to 'COM35' to
+supply this parameter.
+
+nBauds - valid values 1 to 115200.
+
+nWordLen - valid values 5, 6, 7, 8.
+
+nParity - valid values 'N' - no parity, 'E' - even parity, 'O' - odd
+parity, 'S' - space, 'M' - mark, '9' - 9bit protocols
+
+nStopBits - valid values are 1 and 2.
+
+@subheading See also:
+@display
+@xref{COMPortOpen}
+@xref{COMGetTransmitParameters}
+@end display
+
+@c --------------------------------------------------------
+@node COMGetTransmitParameters, COMSetFlowControl, COMSetTransmitParameters, Functions
+@comment node-name, next, previous, up
+@chapter COMGetTransmitParameters
+@cindex info (COMGetTransmitParameters)
+
+@subheading Syntax:
+void COMPortClose(int nCOM)
+
+@subheading Description:
+Returns the transmission parameters set by COMSetTransmitParamaters()
+or COMPortOpen().
+
+@subheading Parameters:
+
+nCOM - valid values are 0 to 34. There are definitions for 'COM1' to
+'COM35' to supply this parameter.
+
+@subheading See also:
+@display
+@xref{COMSetTransmitParameters}
+@xref{COMPortOpen}
+@end display
+
+@c --------------------------------------------------------
+@node COMSetFlowControl, COMGetFlowControl, COMGetTransmitParameters, Functions
+@comment node-name, next, previous, up
+@chapter COMSetFlowControl
+@cindex flow (COMSetFlowControl)
+
+@subheading Syntax:
+void COMSetFlowControl(int nCOM, int nFlowControl)
+
+@subheading Description:
+Not ready.
+
+@subheading Parameters:
+
+nCOM - valid values are 0 to 34. There are definitions for 'COM1' to
+'COM35' to supply this parameter.
+
+@subheading See also:
+@display
+@xref{COMGetFlowControl}
+@xref{COMPortOpen}
+@end display
+
+@c --------------------------------------------------------
+@node COMGetFlowControl, COMSetEventHandler, COMSetFlowControl, Functions
+@comment node-name, next, previous, up
+@chapter COMGetFlowControl
+@cindex info (COMGetFlowControl)
+@cindex flow (COMGetFlowControl)
+
+@subheading Syntax:
+int COMGetFlowControl(int nCOM)
+
+@subheading Description:
+Not ready.
+
+@subheading Parameters:
+
+nCOM - valid values are 0 to 34. There are definitions for 'COM1' to
+'COM35' to supply this parameter.
+
+@subheading See also:
+@display
+@xref{COMSetFlowControl}
+@xref{COMPortOpen}
+@end display
+
+@c --------------------------------------------------------
+@node COMSetEventHandler, COMGetEventHandler, COMGetFlowControl, Functions
+@comment node-name, next, previous, up
+@chapter COMSetEventHandler
+@cindex events (COMSetEventHandler)
+
+@subheading Syntax:
+void COMSetEventHandler(int nCOM, void (*EventHandler)(int nEvent))
+
+@subheading Description:
+Attaches an event handler to be called on every COM port event that
+occurs. Usually such a handler can be attached when calling
+COMPortOpen(), use COMSetEventHandler for later change of this handler.
+
+@subheading Parameters:
+
+nCOM - valid values are 0 to 34. There are definitions for 'COM1' to
+'COM35' to supply this parameter.
+
+EventHandler - Address of an user function to be invoked whenever an
+COM port event occurres. Set NULL for no function.
+
+@subheading See also:
+@display
+@xref{COMPortOpen}
+@xref{COMGetEventHandler}
+@xref{User event handler}
+@end display
+
+@c --------------------------------------------------------
+@node COMGetEventHandler, COMSetTXQueueSize, COMSetEventHandler, Functions
+@comment node-name, next, previous, up
+@chapter COMGetEventHandler
+@cindex events (COMGetEventHandler)
+
+@subheading Syntax:
+void COMGetEventHandler(int nCOM, void (**EventHandler)(int nEvent))
+
+@subheading Description:
+Returns the address of user handler attached to be invoked on COM
+events. Returns NULL if no user handler attached.
+
+@subheading Parameters:
+
+nCOM - valid values are 0 to 34. There are definitions for 'COM1' to
+'COM35' to supply this parameter.
+
+*EventHandler - Where to put the handler address. Will store NULL for
+no function attached.
+
+@subheading See also:
+@display
+@xref{COMPortOpen}
+@xref{COMSetEventHandler}
+@xref{User event handler}
+@end display
+
+@c --------------------------------------------------------
+@node COMSetTXQueueSize, COMGetTXQueueSize, COMGetEventHandler, Functions
+@comment node-name, next, previous, up
+@chapter COMSetTXQueueSize
+@cindex buffer (COMSetTXQueueSize)
+
+@subheading Syntax:
+void COMSetTXQueueSize(int nCOM, int nTXQueueSize)
+
+@subheading Description:
+Sets new value for the tx fifo size. This function should be called
+only before COMPortOpen() for a specific COM port. If not called a
+default size for tx fifo queue is used -- 256 characters.
+
+@subheading Parameters:
+
+nCOM - valid values are 0 to 34. There are definitions for 'COM1' to
+'COM35' to supply this parameter.
+
+nTXQueueSize - Size of TX fifo queue in characters.
+
+@subheading See also:
+@display
+@xref{COMPortOpen}
+@xref{COMGetTXQueueSize}
+@end display
+
+@c --------------------------------------------------------
+@node COMGetTXQueueSize, COMSetRXQueueSize, COMSetTXQueueSize, Functions
+@comment node-name, next, previous, up
+@chapter COMGetTXQueueSize
+@cindex buffer (COMGetTXQueueSize)
+@cindex info (COMGetTXQueueSize)
+
+@subheading Syntax:
+int COMGetTXQueueSize(int nCOM)
+
+@subheading Description:
+Returns the current size of the tx fifo for a specific COM port.
+
+@subheading Parameters:
+
+nCOM - valid values are 0 to 34. There are definitions for 'COM1' to
+'COM35' to supply this parameter.
+
+@subheading See also:
+@display
+@xref{COMPortOpen}
+@xref{COMSetTXQueueSize}
+@end display
+
+@c --------------------------------------------------------
+@node COMSetRXQueueSize, COMGetRXQueueSize, COMGetTXQueueSize, Functions
+@comment node-name, next, previous, up
+@chapter COMSetRXQueueSize
+@cindex buffer (COMSetRXQueueSize)
+
+@subheading Syntax:
+void COMSetRXQueueSize(int nCOM, int nRXQueueSize)
+
+@subheading Description:
+Sets new value for the rx fifo size. This function should be called
+only before COMPortOpen() for a specific COM port. If not called a
+default size for rx fifo queue is used -- 256 characters. The new
+size shouldn't be less than 8 positions if the COM port has hardware
+fifo, otherwise COMReadChar() will report COMERR_RXOVERFLOW every time
+the fifo is full and have to be unload while handling the IRQ.
+
+@subheading Parameters:
+
+nCOM - valid values are 0 to 34. There are definitions for 'COM1' to
+'COM35' to supply this parameter.
+
+nRXQueueSize - Size of RX fifo queue in characters.
+
+@subheading See also:
+@display
+@xref{COMPortOpen}
+@xref{COMGetRXQueueSize}
+@end display
+
+@c --------------------------------------------------------
+@node COMGetRXQueueSize, User event handler, COMSetRXQueueSize, Functions
+@comment node-name, next, previous, up
+@chapter COMGetRXQueueSize
+@cindex info (COMGetRXQueueSize)
+@cindex buffer (COMGetRXQueueSize)
+
+@subheading Syntax:
+int COMGetRXQueueSize(int nCOM)
+
+@subheading Description:
+Returns the current size of the rx fifo for a specific COM port.
+
+@subheading Parameters:
+
+nCOM - valid values are 0 to 34. There are definitions for 'COM1' to
+'COM35' to supply this parameter.
+
+@subheading See also:
+@display
+@xref{COMPortOpen}
+@xref{COMSetRXQueueSize}
+@end display
+
+@c --------------------------------------------------------
+@node User event handler, COMStat, COMGetRXQueueSize, Functions
+@comment node-name, next, previous, up
+@chapter User event handler
+@cindex events (User event handler)
+
+@subheading Syntax:
+void EventHandler(int nEvent)
+
+@subheading Description:
+This is the format of a call-back function that if supplied as parameter to
+COMPortOpen() or COMSetEventHandler() will be invoked on each serial
+interface event or TIMER expired event that occurres. When called your
+handler can read characters by using COMReadChar(), write characters by
+using COMWriteChar(), getting modem status by using COMGetModemStatus(),
+etc. and your action may not depend by nEvent in any way.
+
+DPMI32 IMPORTANT: In DPMI32 mode there is a restricted list of functions
+that can be invoked from into this event handler: COMSetEventHandler(),
+COMGetEventHandler(), COMGetTXQueueSize(), COMGetRXQueueSize(),
+COMWriteChar(), COMWriteBuffer(), COMClearTXBuffer(), COMTXBufferFree(),
+COMTXBufferUsed(), COMIsTXBufferSent(), COMReadChar(), COMPeekChar(),
+COMClearRXBuffer(), COMRXBufferFree(), COMRXBufferUsed(), COMSetDtr(),
+COMSetRts(), COMGetModemStatus(), COMGetCts(), COMGetDsr(), COMGetRI(),
+COMGetCD(). From TIMER module such are the functions TIMERStart(),
+TIMERIsExpired(), TIMERStop(). Calling function that is not in the above
+list may crash your program. This is because EventHandler() is invoked
+from inside the very COM or TIMER IRQ handlers and while in this context
+only locked function can be safely called. The library locks only the
+forementioned functions.
+
+DPMI32 IMPORTANT: All the variables accessed from your EventHandler() should
+be locked as well. Use LOCK_VARIABLE() macro or LockData() function to
+lock the data. Your EventHandler() should be locked by calling
+LOCK_FUNCITION() macro!
+
+This handler can maintain TIMER events as well. The handler function is
+not necessary to be re-entrant because the library takes care so only
+one event to be acknowledged at once. While in the handler all the
+interrupts were disabled, don't enable interrupts as this will broke off
+the atomic wrap of the handler and for example while serving COM event
+the TIMER can invoke again the same handler. Anyway by taking on
+assumption that you write re-entrant handler function IRQs can be
+enabled, but make sure they are disabled back on exiting the handler.
+
+@subheading Parameters:
+
+nEvent - describes the event that occurred to call this handler
+function. May be evCOMStat, evCOMRx, evCOMTx, evModem.
+
+@display
+Event     | Description
+----------+-----------------------------------------------------------
+evCOMStat | Parity, overrun, framing or break error occurred. On evCOMRx
+          | inspect nStat field of the next character.
+evCOMRx   | A character has been received. Use COMReadChar() to read
+          | what's in the rx buffer.
+evCOMTx   | The last requested transmit operation has been completed.
+          | Call COMWriteChar() or similar functions to initiate new
+          | transmit operation.
+evModem   | Modem status register indicated changed status. Use
+          | COMGetModemStatus() or similar functions to acquire the new
+          | modem status.
+evTimer   | Only if the same handler is passed to TIMERStart(). When
+          | receiving this event check the high byte to get the
+          | consecutive timer number that expired and caused this
+          | event.
+@end display
+
+@subheading See also:
+@display
+@xref{COMPortOpen}
+@xref{COMGetEventHandler}
+@xref{COMSetEventHandler}
+@end display
+
+@subheading Example:
+This is an excerpt from an event driven protocol. In COM2EventHandler() is
+collected a packet, if the packet is a poll command then an ack packet
+is sent in response.
+
+@example
+   #include "irq.h"  /* LOCK_XXX() */
+   #include "com.h"
+   ...
+   char poll_cmd[3] = @{2, 1, 3@};  /* len, cmd, sum */
+   char packet[20];
+   int nSize;
+
+   void COM2EventHandler(int nEvent)
+   @{
+     switch (nEvent)
+     @{
+       case evCOMRx:
+         packet[nSize++] = c;
+         if (nSize == PACKET_LEN)
+         @{
+           if (packet[0] == CMD_POLL_ACK)
+             COMWriteBuffer(COM2, poll_cmd, NULL, 3, NULL);
+           nSize = 0;
+         @}
+         ...
+         break;
+       ...
+     @}
+     ...
+   @}
+   END_FUNCTION(COM2EventHandler)
+   ...
+   void main(void)
+   @{
+     int nError;
+
+     if (!LOCK_FUNCTION(COM2EventHandler))
+     @{
+       printf("error: Failed to lock user event handler!");
+       return (1)
+     @}
+     nSize = 0;
+     if ((nError = COMPortOpen(COM2, 9600, 8, 'N', 1, 
+       0, COM2EventHandler)) != 0)
+     @{
+       printf("error: COMPortOpen failed with error code %d\n", nError);
+       return (1);
+     @}
+     ...
+   @}
+@end example
+
+@c --------------------------------------------------------
+@node COMStat, COMWriteChar, User event handler, Functions
+@comment node-name, next, previous, up
+@chapter COMStat
+@cindex type (COMStat)
+
+@subheading Syntax:
+@display
+struct COMStat
+@end display
+
+@subheading Fields:
+@display
+unsigned char nStat;
+unsigned char nBit9;
+@end display
+
+@subheading Description:
+Most common character status argument parameter for COM library. When
+reading characters from COM port the fields stands for: nStat: line
+status at the moment when byte was received, includes indications for
+parity error, framing error, line break and overrun error, nBit9: if
+retrieving characters in 9bit mode this field will convey this bit and
+will be 0 or 1. When receiving in 9bit mode you should ignore parity
+errors if reported in nStat field. When writing to the port: nStat:
+completely ignored, nBit9: if transmitting in 9bit mode this field will
+carry the 9th bit for the correspondent character to be transmitted.
+
+@c --------------------------------------------------------
+@node COMWriteChar, COMWriteCharTimed, COMStat, Functions
+@comment node-name, next, previous, up
+@chapter COMWriteChar
+@cindex send (COMWriteChar)
+
+@subheading Syntax:
+int COMWriteChar(int nCOM, char c, const struct COMStat *pStat)
+
+@subheading Description:
+Writes a character to a specific COM port. The character is stored at
+the end of a transmit fifo buffer waiting to be sent. If you use 9bit
+protocols supply pStat with a desired nBit9 field value to be sent,
+otherwise set NULL for this argument.
+
+@subheading Parameters:
+
+nCOM - valid values are 0 to 34. There are definitions for 'COM1' to
+'COM35' to supply this parameter.
+
+c - Character to be sent
+
+pStat -- See @xref{COMStat}
+
+@subheading Returns:
+
+0 - operation successful
+
+COMERR_TXOVERFLOW - no room in the transmit queue to put a character
+
+@subheading See also:
+@display
+@xref{COMIsTXBufferSent}
+@xref{COMSetTXQueueSize}
+@end display
+
+@subheading Examples
+
+The first example shows simple sending of a character ('s').
+
+@example
+  ...
+  if ((nError = COMPortOpen(COM2, 9600, 8, 'N', 1, 0, NULL)) != 0)
+  @{
+    printf("Error #%d trying to open COM2\n", nError);
+    return;
+  @}
+  if (COMWriteChar(COM2, 's', NULL) != 0)
+  @{
+    printf("Buffer overflow trying to write to COM2\n");
+    return;
+  @}
+  ...
+@end example
+
+The second example shows sending a character using 9bit protocol.
+@example
+  ...
+  struct COMStat CharStat;
+  ...
+  if ((nError = COMPortOpen(COM2, 9600, 8, '9', 1, 0, NULL)) != 0)
+  @{
+    printf("Error #%d trying to open COM2\n", nError);
+    return;
+  @}
+  CharStat.nBit9 = 1;
+  if (COMWriteChar(COM2, 's', &CharStat) != 0)
+  @{
+    printf("Buffer overflow trying to write to COM2\n");
+    return;
+  @}
+  ...
+@end example
+
+@c --------------------------------------------------------
+@node COMWriteCharTimed, COMWriteBuffer, COMWriteChar, Functions
+@comment node-name, next, previous, up
+@chapter COMWriteCharTimed
+@cindex send (COMWriteCharTimed)
+
+@subheading Syntax:
+int COMWriteCharTimed(int nCOM, char c, const struct COMStat *pStat,
+      int nTimeOut)
+
+@subheading Description:
+Writes one characters to the tx buffer, waits for the character to be
+sent, checks timeout. If you use 9bit protocols supply pStat with a
+desired nBit9 field value to be sent, otherwise set NULL for this
+argument.
+
+@subheading Parameters:
+
+nCOM - valid values are 0 to 34. There are definitions for 'COM1' to
+'COM35' to supply this parameter.
+
+c - character to be sent
+
+pStat - see @xref{COMStat}
+
+nTimeOut -- time out parameter in milliseconds. The library uses the
+system time and that's why the precision is +-50 milliseconds. If
+nTimeOut = -1 the function will wait indefinitely to transmit the
+character.
+
+@subheading Returns:
+
+0 - operation successful.
+
+COM_TIMEOUT - time out expired while waiting for the character to be
+sent.
+
+@subheading See also:
+@display
+@xref{COMWriteChar}
+@xref{COMWriteBuffer}
+@end display
+
+@subheading Example
+
+Using COMWriteCharTimed with timeout -1 is very useful when you need
+to send a character and to wait while the character is sent. In such
+a case no error codes should be expected.
+
+@example
+  ...
+  if ((nError = COMPortOpen(COM2, 9600, 8, 'N', 1, 0, NULL)) != 0)
+  @{
+    printf("Error #%d trying to open COM2\n", nError);
+    return;
+  @}
+  COMWriteCharTimed(COM2, 's', NULL, -1);
+  ...
+@end example
+
+@c --------------------------------------------------------
+@node COMWriteBuffer, COMWriteBufferTimed, COMWriteCharTimed, Functions
+@comment node-name, next, previous, up
+@chapter COMWriteBuffer
+@cindex send (COMWriteBuffer)
+
+@subheading Syntax:
+int COMWriteBuffer(int nCOM, const char *pBuf,
+    const struct COMStat *pStatBuf, int nSize, int *nCount)
+
+@subheading Description:
+Writes a block of data to the port. This routine will only write the
+number of characters that will fit in the output buffer. It may return
+before the requested number has been transferred if the buffer fills up.
+If you use 9bit protocols supply pStatBuf with a desired nBit9 field value
+to be sent, otherwise set NULL for this argument.
+
+@subheading Parameters:
+
+nCOM - valid values are 0 to 34. There are definitions for 'COM1' to
+'COM35' to supply this parameter.
+
+pBuf - an array of characters to be sent
+
+pStatBuf - an array of COMStat records for each of pBuf characters. See
+@xref{COMStat}. Set NULL for no stat info.
+
+nSize - number of characters to transfer from pBuf.
+
+nCount - points to an integer where the function will store the actual
+number of characters transferred from pBuf. NULL will reject such an
+information.
+
+@subheading Returns:
+
+0 - operation successful
+
+COMERR_TXOVERFLOW - no room to transfer all the requested number of
+characters (nSize), check *nCount to see the number of transferred
+characters.
+
+@subheading See also:
+@display
+@xref{COMIsTXBufferSent}
+@xref{COMWriteChar}
+@xref{COMSetTXQueueSize}
+@end display
+
+@subheading Example
+
+This example sends an array of characters. As an example a simple
+protocol is displayed -- first byte is packet lenght and the last byte
+is an additive control sum.
+
+@example
+  ...
+  char packet[5];
+  ...
+  if ((nError = COMPortOpen(COM2, 9600, 8, 'N', 1, 0, NULL)) != 0)
+  @{
+    printf("Error #%d trying to open COM2\n", nError);
+    return;
+  @}
+  packet[0] = 5;  /* len */
+  packet[1] = 0;
+  packet[2] = 1;
+  packet[3] = 2;
+  packet[4] = 8;  /* csum */
+  if (COMWriteBuffer(COM2, packet, NULL, 5, NULL) != 0)
+  @{
+    printf("error: Buffer overflow while sending a packet\n");
+    return;
+  @}
+  ...
+@end example
+
+
+@c --------------------------------------------------------
+@node COMWriteBufferTimed, COMClearTXBuffer, COMWriteBuffer, Functions
+@comment node-name, next, previous, up
+@chapter COMWriteBufferTimed
+@cindex send (COMWriteBufferTimed)
+
+@subheading Syntax:
+int COMWriteBufferTimed(int nCOM, const char *pBuf,
+const struct COMStat *pStatBuf, int nSize,
+int *nCount, int nTimeOut)
+
+@subheading Description:
+Writes block of characters to the tx buffer, waits to be sent, checks
+timeout.
+
+@subheading Parameters:
+
+nCOM - valid values are 0 to 34. There are definitions for 'COM1' to
+'COM35' to supply this parameter.
+
+pBuf - an array of characters to be sent.
+
+pStatBuf - an array of COMStat records for each of pBuf characters. See
+@xref{COMStat}. Set NULL for no stat info.
+
+nSize - number of characters to transfer from pBuf.
+
+nCount - points to an integer where the function will store the actual
+number of characters transferred from pBuf. NULL will reject such an
+information.
+
+nTimeOut -- time out parameter in milliseconds. The library uses the
+system time and that's why the precision is +-50 milliseconds. If
+nTimeOut = -1 the function will wait indefinitely to transmit all the
+characters in the buffer.
+
+@subheading Returns:
+0 - operation successful
+
+COM_TIMEOUT - time out expired while waiting for block of characters
+to be sent.
+
+@subheading See also:
+@display
+@xref{COMWriteChar}
+@xref{COMWriteBuffer}
+@end display
+
+@subheading Example
+
+First example sends an array of characters. As an example a simple
+protocol is displayed -- first byte is packet lenght and the last byte
+is an additive control sum. By setting time-out to -1
+COMWriteBufferTimed will return no errors, this guarantees sending even
+arrays much larger than the TX fifo buffer (set by
+@xref{COMSetTXQueueSize}), as the function will wait indefinetely while
+sending all the characters requested by nSize.
+
+@example
+  ...
+  char packet[5];
+  ...
+  if ((nError = COMPortOpen(COM2, 9600, 8, 'N', 1, 0, NULL)) != 0)
+  @{
+    printf("Error #%d trying to open COM2\n", nError);
+    return;
+  @}
+  packet[0] = 5;  /* len */
+  packet[1] = 0;
+  packet[2] = 1;
+  packet[3] = 2;
+  packet[4] = 8;  /* csum */
+  COMWriteBufferTimed(COM2, packet, NULL, 5, NULL, -1);
+  ...
+@end example
+
+Second example is similar to the above but shows a 9bit protocol
+example. In multiprocessor systems using 9bit protocol first byte has
+9th bit of 1 to indicate that a device address is sent. This byte is
+received by all the devices (note: some microcontrollers has the ability
+to enable/disable their serial interface IRQs depending on the 9th bit
+status) and then only the addressed device will receive the remaining of
+the packet.
+
+@example
+  ...
+  char packet[6];
+  struct COMStat spacket[6];
+  ...
+  if ((nError = COMPortOpen(COM2, 9600, 8, 'N', 1, 0, NULL)) != 0)
+  @{
+    printf("Error #%d trying to open COM2\n", nError);
+    return;
+  @}
+  packet[0] = 0xf0;  /* device address */
+  packet[1] = 5;  /* len */
+  packet[2] = 0;
+  packet[3] = 1;
+  packet[4] = 2;
+  packet[5] = 8;  /* csum */
+  memset(spacket, 0, sizeof(spacket));
+  packet[0].nBit9 = 1;
+  COMWriteBufferTimed(COM2, packet, spacket, 6, NULL, -1);
+  ...
+@end example
+
+@c --------------------------------------------------------
+@node COMClearTXBuffer, COMTXBufferFree, COMWriteBufferTimed, Functions
+@comment node-name, next, previous, up
+@chapter COMClearTXBuffer
+@cindex buffer (COMClearTXBuffer)
+
+@subheading Syntax:
+void COMClearTXBuffer(int nCOM);
+
+@subheading Description:
+Clears the transmit fifo buffer contents.
+
+@subheading Parameters:
+
+nCOM - valid values are 0 to 34. There are definitions for 'COM1' to
+'COM35' to supply this parameter.
+
+@subheading See also:
+@display
+@xref{COMWriteChar}
+@xref{COMSetTXQueueSize}
+@end display
+
+@c --------------------------------------------------------
+@node COMTXBufferFree, COMTXBufferUsed, COMClearTXBuffer, Functions
+@comment node-name, next, previous, up
+@chapter COMTXBufferFree
+@cindex buffer (COMTXBufferFree)
+
+@subheading Syntax:
+int COMTXBufferFree(int nCOM);
+
+@subheading Description:
+Returns an integer indicating how much space is available in
+the transmit queue.
+
+@subheading Parameters:
+
+nCOM - valid values are 0 to 34. There are definitions for 'COM1' to
+'COM35' to supply this parameter.
+
+@subheading See also:
+@display
+@xref{COMTXBufferUsed}
+@xref{COMIsTXBufferSent}
+@xref{COMSetTXQueueSize}
+@end display
+
+@c --------------------------------------------------------
+@node COMTXBufferUsed, COMIsTXBufferSent, COMTXBufferFree, Functions
+@comment node-name, next, previous, up
+@chapter COMTXBufferUsed
+@cindex buffer (COMTXBufferUsed)
+
+@subheading Syntax:
+int COMTXBufferUsed(int nCOM);
+
+@subheading Description:
+Returns an integer telling the number of characters currently in
+the transmit queue.
+
+@subheading Parameters:
+
+nCOM - valid values are 0 to 34. There are definitions for 'COM1' to
+'COM35' to supply this parameter.
+
+@subheading See also:
+@display
+@xref{COMTXBufferFree}
+@xref{COMIsTXBufferSent}
+@end display
+
+@c --------------------------------------------------------
+@node COMIsTXBufferSent, COMReadChar, COMTXBufferUsed, Functions
+@comment node-name, next, previous, up
+@chapter COMIsTXBufferSent
+@cindex buffer (COMIsTXBufferSent)
+@cindex send (COMIsTXBufferSent)
+
+@subheading Syntax:
+int COMIsTXBufferSent(int nCOM);
+
+@subheading Description:
+Checks whether last transmission completed. This function doesn't check
+whether the TX buffer is empty, which in case of hardware fifo buffers
+is very unreliable indication, but instead checks whether the COM port
+transmission is still running or not.
+
+@subheading Parameters:
+
+nCOM - valid values are 0 to 34. There are definitions for 'COM1' to
+'COM35' to supply this parameter.
+
+@subheading Returns:
+0 - no pending transmit operation
+
+1 - there is transmission in progress
+
+@subheading See also:
+@display
+@xref{COMWriteChar}
+@xref{COMTXBufferUsed}
+@end display
+
+@c --------------------------------------------------------
+@node COMReadChar, COMReadCharTimed, COMIsTXBufferSent, Functions
+@comment node-name, next, previous, up
+@chapter COMReadChar
+@cindex receive (COMReadChar)
+
+@subheading Syntax:
+int COMReadChar(int nCOM, char *pChar, struct COMStat *pStat)
+
+@subheading Description:
+Reads a character from the COM port receive buffer.
+
+@subheading Parameters:
+
+nCOM - valid values are 0 to 34. There are definitions for 'COM1' to
+'COM35' to supply this parameter.
+
+pChar - put character here
+
+pStat - put character receive status here. See @xref{COMStat}. If NULL
+this information will be ommited.
+
+@subheading Returns:
+0 - operation successful
+
+COMERR_RXOVERFLOW - Receive buffer was unable to accept more incoming
+characters during last IRQ handling.
+
+COM_BUFEMPTY - No characters in the receive buffer of the COM port.
+
+@subheading See also:
+@display
+@xref{COMPortOpen}
+@xref{COMReadBuffer}
+@xref{Example2}
+@end display
+
+@c --------------------------------------------------------
+@node COMReadCharTimed, COMReadBuffer, COMReadChar, Functions
+@comment node-name, next, previous, up
+@chapter COMReadCharTimed
+@cindex receive (COMReadCharTimed)
+
+@subheading Syntax:
+int COMReadCharTimed(int nCOM, char *pChar,
+  struct COMStat *pStat, int nTimeOut)
+
+@subheading Description:
+Reads a character from the COM port receive buffer. If no characters
+available will wait up to nTimeOut milliseconds to retrieve one.
+
+@subheading Parameters:
+
+nCOM - valid values are 0 to 34. There are definitions for 'COM1' to
+'COM35' to supply this parameter.
+
+pChar - put character here
+
+pStat - put character receive status here. See @xref{COMStat}. If NULL
+this information will be ommited.
+
+nTimeOut - time out parameter in milliseconds. The library uses the
+system time and that's why the precision is +-50 milliseconds. If
+nTimeOut = -1 the function will wait indefinitely to transmit the
+character.
+
+@subheading Returns:
+0 - operation successful
+
+COMERR_RXOVERFLOW - Receive buffer was unable to accept more incoming
+characters during last IRQ handling.
+
+COM_BUFEMPTY - No characters in the receive buffer of the COM port,
+and no characters appeared in the buffer during time out period
+expired.
+
+@subheading See also:
+@display
+@xref{COMReadChar}
+@xref{COMReadBufferTimed}
+@end display
+
+@c --------------------------------------------------------
+@node COMReadBuffer, COMReadBufferTimed, COMReadCharTimed, Functions
+@comment node-name, next, previous, up
+@chapter COMReadBuffer
+@cindex receive (COMReadBuffer)
+
+@subheading Syntax:
+int COMReadBuffer(int nCOM, char *pBuf, struct COMStat *pStatBuf, 
+  int nCount)
+
+@subheading Description:
+Reads a maximum of nCount characters from COMs rx queue to a specific
+buffer. In the rx buffer should have at least nCount characters
+available upon calling this function.
+
+@subheading Parameters:
+
+nCOM - valid values are 0 to 34. There are definitions for 'COM1' to
+'COM35' to supply this parameter.
+
+pBuf - put character here
+
+pStatBuf - put character receive status here. See @xref{COMStat}. If NULL
+this information will be ommited.
+
+nCount - number of characters to transfer from library receive buffer
+to pBuf array.
+
+@subheading Returns:
+0 - operation successful
+
+COMERR_RXOVERFLOW - Receive buffer was unable to accept more incoming
+characters during last IRQ handling.
+
+COM_BUFEMPTY - No enough characters in the receive buffer to satisfy
+the requested in nCount. Nothing is transferred!
+
+@subheading See also:
+@display
+@xref{COMReadChar}
+@xref{COMReadBufferTimed}
+@xref{Example3}
+@end display
+
+@subheading Example
+
+@c --------------------------------------------------------
+@node COMReadBufferTimed, COMPeekChar, COMReadBuffer, Functions
+@comment node-name, next, previous, up
+@chapter COMReadBufferTimed
+@cindex receive (COMReadBufferTimed)
+
+@subheading Syntax:
+int COMReadBufferTimed(int nCOM, char *pBuf, struct COMStat *pStatBuf, 
+  int nCount, int *nActual, int nTimeOut)
+
+@subheading Description:
+Reads a maximum of nCount characters from COMs rx queue to a specific
+buffer. Will wait up to nTimeOut milliseconds to retrieve the
+requested number of characters.
+
+@subheading Parameters:
+
+nCOM - valid values are 0 to 34. There are definitions for 'COM1' to
+'COM35' to supply this parameter.
+
+pBuf - put character here
+
+pStatBuf - put character receive status here. See @xref{COMStat}. If NULL
+this information will be ommited.
+
+nCount - Number of character to wait for.
+
+nActual - Will contain the number of characters retrieved in pBuf. May
+differ from nCount! If NULL this information is rejected.
+
+nTimeOut - time out parameter in milliseconds. The library uses the
+system time and that's why the precision is +-50 milliseconds. If
+nTimeOut = -1 the function will wait indefinitely to transmit the
+character.
+
+@subheading Returns:
+0 - operation successful
+
+COMERR_RXOVERFLOW - Receive buffer was unable to accept more incoming
+characters during last IRQ handling.
+
+COM_TIMEOUT - The predetermined time out expired and the requested
+nCount characters were not delivered. Check *nActual to see the exact
+number of the characters transferred in pBuf.
+
+@subheading See also:
+@display
+@xref{COMReadChar}
+@xref{COMReadBuffer}
+@end display
+
+@c --------------------------------------------------------
+@node COMPeekChar, COMClearRXBuffer, COMReadBufferTimed, Functions
+@comment node-name, next, previous, up
+@chapter COMPeekChar
+@cindex receive (COMPeekChar)
+
+@subheading Syntax:
+int COMPeekChar(int nCOM, char *pChar, struct COMStat *pStat)
+
+@subheading Description:
+Reads the next character available in the receive buffer. The character
+is not extracted and remains in the buffer. You can only peek one-deep
+into the buffer.
+
+@subheading Parameters:
+
+nCOM - valid values are 0 to 34. There are definitions for 'COM1' to
+'COM35' to supply this parameter.
+
+pChar - where to put the character
+
+pStat - where to put the status info. NULL for no info. See @xref{COMStat}
+
+@subheading See also:
+@display
+@xref{COMReadChar}
+@xref{COMReadBuffer}
+@end display
+
+@c --------------------------------------------------------
+@node COMClearRXBuffer, COMRXBufferFree, COMPeekChar, Functions
+@comment node-name, next, previous, up
+@chapter COMClearRXBuffer
+@cindex buffer (COMClearRXBuffer)
+
+@subheading Syntax:
+void COMClearRXBuffer(int nCOM);
+
+@subheading Description:
+Clears all the characters currently in the rx buffer.
+
+@subheading Parameters:
+
+nCOM - valid values are 0 to 34. There are definitions for 'COM1' to
+'COM35' to supply this parameter.
+
+@subheading See also:
+@xref{COMRXBufferUsed}
+
+@c --------------------------------------------------------
+@node COMRXBufferFree, COMRXBufferUsed, COMClearRXBuffer, Functions
+@comment node-name, next, previous, up
+@chapter COMRXBufferFree
+@cindex buffer (COMRXBufferFree)
+
+@subheading Syntax:
+int COMRXBufferFree(int nCOM);
+
+@subheading Description:
+Returns an integer indicating how much space is available in the
+receive queue.
+
+@subheading Parameters:
+
+nCOM - valid values are 0 to 34. There are definitions for 'COM1' to
+'COM35' to supply this parameter.
+
+@subheading See also:
+@xref{COMRXBufferUsed}
+
+@c --------------------------------------------------------
+@node COMRXBufferUsed, COMGetModemStatus, COMRXBufferFree, Functions
+@comment node-name, next, previous, up
+@chapter COMRXBufferUsed
+@cindex buffer (COMRXBufferUsed)
+
+@subheading Syntax:
+int COMRXBufferUsed(int nCOM);
+
+@subheading Description:
+Returns an integer telling the number of characters currently in the
+receive queue.
+
+@subheading Parameters:
+
+nCOM - valid values are 0 to 34. There are definitions for 'COM1' to
+'COM35' to supply this parameter.
+
+@subheading See also:
+@xref{COMRXBufferFree}
+
+@c --------------------------------------------------------
+@node COMGetModemStatus, COMGetCts, COMRXBufferUsed, Functions
+@comment node-name, next, previous, up
+@chapter COMGetModemStatus
+@cindex modem (COMGetModemStatus)
+
+@subheading Syntax:
+int COMGetModemStatus(int nCOM);
+
+@subheading Description:
+Returns the contents of the modem status register. It is read from a
+variable. Direct reading of MSR may improperly deactivate pending IRQ.
+IRQ handler of the library refreshes the internal variable whenever
+modem status changes.
+
+@subheading Parameters:
+
+nCOM - valid values are 0 to 34. There are definitions for 'COM1' to
+'COM35' to supply this parameter.
+
+@subheading Return:
+Mask the return value with CTS_LINE, DSR_LINE, RI_LINE, CD_LINE
+to get particular line status.
+
+@subheading See also:
+@xref{COMPortOpen}
+
+@c --------------------------------------------------------
+@node COMGetCts, COMGetDsr, COMGetModemStatus, Functions
+@comment node-name, next, previous, up
+@chapter COMGetCts
+@cindex modem (COMGetCts)
+
+@subheading Syntax:
+int COMGetCts(int nCOM);
+
+@subheading Description:
+Returns the current state of Clear To Send (CTS) modem status line.
+Reads an internal variable. See @xref{COMGetModemStatus}.
+
+@subheading Parameters:
+
+nCOM - valid values are 0 to 34. There are definitions for 'COM1' to
+'COM35' to supply this parameter.
+
+@subheading Returns:
+0 or 1
+
+@subheading See also:
+@xref{COMGetModemStatus}
+
+@c --------------------------------------------------------
+@node COMGetDsr, COMGetRI, COMGetCts, Functions
+@comment node-name, next, previous, up
+@chapter COMGetDsr
+@cindex modem (COMGetDsr)
+
+@subheading Syntax:
+int COMGetDsr(int nCOM);
+
+@subheading Description:
+Returns the current state of Data Set Ready (DSR) modem status line.
+Reads an internal variable. See @xref{COMGetModemStatus}.
+
+@subheading Parameters:
+
+nCOM - valid values are 0 to 34. There are definitions for 'COM1' to
+'COM35' to supply this parameter.
+
+@subheading Returns:
+0 or 1
+
+@subheading See also:
+@xref{COMGetModemStatus}
+
+@c --------------------------------------------------------
+@node COMGetRI, COMGetCD, COMGetDsr, Functions
+@comment node-name, next, previous, up
+@chapter COMGetRI
+@cindex modem (COMGetRI)
+
+@subheading Syntax:
+int COMGetRI(int nCOM);
+
+@subheading Description:
+Returns the state of the incoming modem status line
+Ring Indicator (RI). Will be 1 when the line is ringing.
+Reads an internal variable. See @xref{COMGetModemStatus}.
+
+@subheading Parameters:
+
+nCOM - valid values are 0 to 34. There are definitions for 'COM1' to
+'COM35' to supply this parameter.
+
+@subheading Returns:
+0 or 1
+
+@subheading See also:
+@xref{COMGetModemStatus}
+
+@c --------------------------------------------------------
+@node COMGetCD, COMSetDtr, COMGetRI, Functions
+@comment node-name, next, previous, up
+@chapter COMGetCD
+@cindex modem (COMGetCD)
+
+@subheading Syntax:
+int COMGetCD(int nCOM);
+
+@subheading Description:
+Returns the current state of Carrier Detect (CD) line.
+
+@subheading Parameters:
+
+nCOM - valid values are 0 to 34. There are definitions for 'COM1' to
+'COM35' to supply this parameter.
+
+@subheading Returns:
+0 or 1
+
+@subheading See also:
+@xref{COMGetModemStatus}
+
+@c --------------------------------------------------------
+@node COMSetDtr, COMSetRts, COMGetCD, Functions
+@comment node-name, next, previous, up
+@chapter COMSetDtr
+@cindex modem (COMSetDtr)
+
+@subheading Syntax:
+void COMSetDtr(int nCOM, int nControl);
+
+@subheading Description:
+Sets the DTR line to 0 or 1 depending on nControl is 0 or nonzero.
+
+@subheading Parameters:
+
+nCOM - valid values are 0 to 34. There are definitions for 'COM1' to
+'COM35' to supply this parameter.
+
+nControl - 0 or 1
+
+@subheading See also:
+@xref{COMSetRts}
+
+@c --------------------------------------------------------
+@node COMSetRts, COMGetDiagnosticCounters, COMSetDtr, Functions
+@comment node-name, next, previous, up
+@chapter COMSetRts
+@cindex modem (COMSetRts)
+
+@subheading Syntax:
+void COMSetRts(int nCOM, int nControl);
+
+@subheading Description:
+Sets the RTS line to 0 or 1 depending on nControl is 0 or nonzero.
+
+@subheading Parameters:
+
+nCOM - valid values are 0 to 34. There are definitions for 'COM1' to
+'COM35' to supply this parameter.
+
+nControl - 0 or 1
+
+@subheading See also:
+@xref{COMSetDtr}
+
+@c --------------------------------------------------------
+@node COMGetDiagnosticCounters, Examples, COMSetRts, Functions
+@comment node-name, next, previous, up
+@chapter COMGetDiagnosticCounters
+@cindex diag (COMGetDiagnostiCounters)
+
+@subheading Syntax:
+void COMGetDiagnosticCounters(int nCOM, int *nRX, int *nTX,
+  int *nStat, int *nModem, int *nIRQs);
+
+@subheading Description:
+
+@subheading Parameters:
+
+nCOM - valid values are 0 to 34. There are definitions for 'COM1' to
+'COM35' to supply this parameter.
+
+*nRX - number of characters received. If NULL no info requested.
+
+*nTX - number of IRQs caused by 'transmiter is empty'. if NULL no info
+requested.
+
+*nStat - number of characters with bad receive status. If NULL no info
+requested.
+
+*nModem - number of IRQs caused by change in modem staus. If NULL no info
+requested.
+
+*nIRQs - total number of IRQs handled. If NULL no info requested.
+
+NOTE:
+The summary of all the counters may be less than the total number of
+IRQs handled.
+
+@subheading See also:
+@xref{COMPortOpen}
+
+@c --------------------------------------------------------
+@node Examples, Example1, COMGetDiagnosticCounters, top
+@comment node-name, next, previous, up
+@chapter Examples
+
+@menu
+* Example1::    COMInit, COMDetect, COMGetHardwareParameters
+
+* Example2::    COMPortOpen, COMReadChar, COMGetChipset,
+              COMIsFIFOAvailable, COMIsFIFOEnabled,
+              COMGetHardwareParameters, COMStat-type
+
+* Example3::    COMPortOpen, COMReadBuffer, COMRXBufferUsed, 
+              COMStat-type
+
+@end menu
+
+@c --------------------------------------------------------
+@node Example1, Example2, Examples, Examples
+@comment node-name, next, previous, up
+@chapter COMInit, COMDetect, COMGetHardwareParameters
+@cindex example (COMInit)
+@cindex example (COMDetect)
+@cindex example (COMGetHardwareParameters)
+
+This example shows a tipical use of COMInit() as COMPortOpen() is not
+intended to be used here.
+
+Bellow you see the only valid context where COMDetect() can be used
+and this is when we have set hardware parameters (calling COMInit())
+for the port and it is still not opened (or never opened).
+
+@example
+/*
+COM ports hardware information
+*/
+#include <stdio.h>
+#include "com.h"
+
+char *COMChipsets[5] =
+@{
+  "8250",
+  "16450",
+  "16550",
+  "16550A",
+  "N/A"
+@};
+
+void main(void)
+@{
+  int i;
+  int nIRQ, nAddress;
+  int nChip;
+
+  if (!COMInit())  /* As COMPortOpen will not be used */
+  @{
+    printf("COMInit() failed!\n");
+    return;
+  @}
+
+  printf("     chipset    io   IRQ\n");
+  printf("------------------------------------\n");
+  for (i = COM1; i <= COM2; ++i)
+  @{
+    nChip = COMDetect(i);
+    COMGetHardwareParameters(i, &nIRQ, &nAddress);
+    printf("COM%d %-6s    %4x  %d\n", i + 1,
+      COMChipsets[nChip - 1], nAddress, nIRQ);
+  @}
+@}
+@end example
+
+@c --------------------------------------------------------
+@node Example2, Example3, Example1, Examples
+@comment node-name, next, previous, up
+@chapter COMPortOpen, COMReadChar, COMIsFIFOAvailable, COMIsFIFOEnabled
+@cindex example (COMPortOpen)
+@cindex example (COMReadChar)
+@cindex example (COMGetChipset)
+@cindex example (COMIsFIFOAvailable)
+@cindex example (COMIsFIFOEnabled)
+@cindex example (COMGetHardwareParameters)
+@cindex example (COMStat-type)
+
+In this example is shown the tipical usage of COMGetChipset() in
+contrast with COMDetect() as in @xref{Example1} -- only allowed when the
+COM port is opened.
+
+@example
+/*
+Monitoring serial interface.
+
+This program is useful when monitoring what 2 devices
+are talking and this way testing a procotol.
+It is necessary to make 2 parallel connections to the wire
+that is to be listened. First connect to COM1 and the
+second to COM2 and this way you'll be displayed what
+exactly goes on the line.
+*/
+
+#include <conio.h>
+#include <stdlib.h>
+#include "com.h"
+
+char *COMChipsets[5] =
+@{
+  "8250",
+  "16450",
+  "16550",
+  "16550A",
+  "N/A"
+@};
+
+char *GetYesNo(int bYesNo)
+@{
+  return bYesNo ? "Yes" : "No";
+@}
+
+char PresentStat(char nStat)
+@{
+  switch (nStat)
+  @{
+    case statOverrun:
+      return 'O';
+    case statParity:
+      return 'P';
+    case statFraming:
+      return 'F';
+    case statBreak:
+      return 'B';
+  @}
+  return 'X';  /* Indicates internal library error! */
+@}
+
+void main(void)
+@{
+  int nError;
+  struct COMStat CharStat1;
+  char c1;
+  int bAvailable1;
+  struct COMStat CharStat2;
+  char c2;
+  int bAvailable2;
+  int x;
+  int y;
+  int nIRQ, nAddress;
+  int nChip;
+  int i;
+
+  if ((nError = COMPortOpen(COM1, 9600, 8, 'N', 1, 0, NULL)) != 0)
+  @{
+    cprintf("Error #%d trying to open COM1\n", nError);
+    return;
+  @}
+
+  if ((nError = COMPortOpen(COM2, 9600, 8, 'N', 1, 0, NULL)) != 0)
+  @{
+    cprintf("Error #%d trying to open COM2\n", nError);
+    return;
+  @}
+
+  cprintf("     chipset    io   IRQ  FIFO  ENABLED\n\r");
+  cprintf("---------------------------------------\n\r");
+  nChip = COMGetChipset(COM1);
+  COMGetHardwareParameters(COM1, &nIRQ, &nAddress);
+  cprintf("COM1 %-6s     %-4x %-2d   %-3s   %-3s\n\r",
+    COMChipsets[nChip - 1], nAddress, nIRQ,
+    GetYesNo(COMIsFIFOAvailable(COM1)),
+    GetYesNo(COMIsFIFOEnabled(COM1)));
+  nChip = COMGetChipset(COM2);
+  COMGetHardwareParameters(COM2, &nIRQ, &nAddress);
+  cprintf("COM2 %-6s     %-4x %-2d   %-3s   %-3s\n\r",
+    COMChipsets[nChip - 1], nAddress, nIRQ,
+    GetYesNo(COMIsFIFOAvailable(COM2)),
+    GetYesNo(COMIsFIFOEnabled(COM2)));
+
+  cprintf("press a key to terminate\n\r");
+  cprintf("COM1:\n\rCOM2:");
+  x = wherex();
+  y = wherey();
+  --y;
+  gotoxy(x, y);
+
+  while (!kbhit())
+  @{
+    bAvailable1 = 0;  /* Assume no characters available */
+    bAvailable2 = 0;
+
+    /*
+    Check for available characters
+    */
+    CharStat1.nStat = 0;  /* Assume no line errors */
+    CharStat2.nStat = 0;
+    if ((nError = COMReadChar(COM1, &c1, &CharStat1)) == 0)
+    @{
+      bAvailable1 = 1;
+    @}
+    else
+      if (nError != COM_BUFEMPTY)
+      @{
+        cprintf("error #%d reading COM1\n\r");
+        return;
+      @}
+
+    if ((nError = COMReadChar(COM2, &c2, &CharStat2)) == 0)
+    @{
+      bAvailable2 = 1;
+    @}
+    else
+      if (nError != COM_BUFEMPTY)
+      @{
+        cprintf("error #%d reading COM2\n\r");
+        return;
+      @}
+
+    /*
+    Display parallel output
+    */
+    if ((bAvailable1 || bAvailable2) && x == 80)
+    @{
+      textattr(7);  /* One char */
+      clreol();
+      /* Parallel dual line output */
+      cprintf("\n\r\n\rCOM1:\n\rCOM2:");
+      x = wherex();
+      y = wherey();
+      --y;
+    @}
+    textattr(0x2);
+    if (bAvailable2)
+    @{
+      gotoxy(x, y + 1);
+      cprintf("%c", c2);
+      gotoxy(x, y);
+    @}
+    else
+      if (bAvailable1)
+      @{
+        /* No character -- advance only */
+        gotoxy(x, y + 1);
+        textattr(0x10);
+        cprintf(" ");
+        gotoxy(x, y);
+      @}
+
+    textattr(0x6);
+    if (bAvailable1)
+      cprintf("%c", c1);
+    else
+      if (bAvailable2)
+      @{
+        textattr(0x70);
+        cprintf(" ");
+      @}
+
+    /*
+    Display character error if any
+    */
+    if (bAvailable1 || bAvailable2)
+      for (i = 0x2; i <= 0x10; i <<= 1)
+      @{
+        x = wherex();
+        y = wherey();
+        /* Process COMStat structure for COM1 and COM2 */
+        if ((CharStat1.nStat != 0 || CharStat2.nStat != 0) && x == 80)
+        @{
+          /* Ensure space for info to be displayed */
+          textattr(7);  /* One char */
+          clreol();
+          /* Parallel dual line output */
+          cprintf("\n\r\n\rCOM1:\n\rCOM2:");
+          x = wherex();
+          y = wherey();
+          --y;
+        @}
+
+        textattr(0x4f);
+        if ((CharStat2.nStat & i) != 0)
+        @{
+          gotoxy(x, y + 1);
+          cprintf("%c", PresentStat(i));
+          gotoxy(x, y);
+        @}
+        else
+          if ((CharStat1.nStat & i) != 0)
+          @{
+            /* No character -- advance only */
+            gotoxy(x, y + 1);
+            textattr(0x10);
+            cprintf(" ");
+            gotoxy(x, y);
+          @}
+
+        textattr(0x4f);
+        if ((CharStat1.nStat & i) != 0)
+          cprintf("%c", PresentStat(i));
+        else
+          if ((CharStat2.nStat & i) != 0)
+          @{
+            textattr(0x70);
+            cprintf(" ");
+          @}
+
+        /* Mask out the errors that were displayed */
+        CharStat1.nStat &= ~i;
+        CharStat2.nStat &= ~i;
+      @}
+
+    x = wherex();
+    y = wherey();
+  @}
+
+  cprintf("\n\r");
+@}
+@end example
+
+@c --------------------------------------------------------
+@node Example3, Concepts, Example2, Examples
+@comment node-name, next, previous, up
+@chapter COMPortOpen, COMReadBuffer, COMRXBufferUsed, COMStat-type
+@cindex example (COMPortOpen)
+@cindex example (COMReadBuffer)
+@cindex example (COMRXBufferUsed)
+@cindex example (COMStat-type)
+
+This example receives characters from COM2. To speed up it uses
+COMReadBuffer() instead COMReadChar(). COMStat parameter is examined
+and displayed to show the characters status.
+
+@example
+/*
+Receive all.
+*/
+
+#include <conio.h>
+#include <stdlib.h>
+#include "com.h"
+
+void main(void)
+@{
+  int nError;
+  int nUsed;
+  char buf[25];
+  struct COMStat sbuf[25];
+  int i;
+
+  if ((nError = COMPortOpen(COM2, 9600, 8, 'N', 1, 0, NULL)) != 0)
+  @{
+    cprintf("Error #%d trying to open COM1\n", nError);
+    return;
+  @}
+
+  while (!kbhit())
+  @{
+    if ((nUsed = COMRXBufferUsed(COM2)) > 0)
+    @{
+      if (nUsed > 25)
+        nUsed = 25;
+      if ((nError = COMReadBuffer(COM2, buf, sbuf, nUsed)) == 0)
+      @{
+        for (i = 0; i < nUsed; ++i)
+        @{
+          cprintf("%x", (unsigned char)buf[i]);
+          if (sbuf[i].nStat != 0)
+          @{
+            textattr(0x0c);
+            if (sbuf[i].nStat & statOverrun)
+              cprintf("O");
+            if (sbuf[i].nStat & statParity)
+              cprintf("P");
+            if (sbuf[i].nStat & statFraming)
+              cprintf("F");
+            if (sbuf[i].nStat & statBreak)
+              cprintf("B");
+            textattr(0x07);
+          @}
+          cprintf(" ");
+        @}
+      @}
+      else
+      @{
+        cprintf("\n\rError #%d while reading COM2\n", nError);
+        return;
+      @}
+      cprintf("\n\r");
+    @}
+  @}
+@}
+@end example
+
+@c --------------------------------------------------------
+@node Concepts, , Example3, Top
+@c node-name, next, previous, up
+@ifclear DOC
+@unnumbered Concept Index
+@printindex cp
+
+@contents
+@end ifclear
+@bye
+

@@ -1,0 +1,43 @@
+Nothing new.. Just thought since it's been posted publicly elsewhere we should end a lot of speculation as to what it REALLY did. Some card-specific bytes in the packet have been ??'ed out to protect the innocent: 
+
+
+
+------------------------------------
+HU USW Update 1 (00 01)
+------------------------------------
+> 48 40 00 00 3D                |INS40 (InsParam1=00,InsParam2=00,PacketLength=3D)
+< 40                            | INS40 acknowledgement
+> 7E                            |CMD7E - Packet Signature Adjustment/Video Key Adjustment (H ignores, HU processes)
+  12                            | CMD7E Command Length
+  ?? ?? ?? ?? ?? ?? ?? ??       | Packet Signature Adjustment Bytes
+  00 00 00 00 00 00 00 00 00 00 | H-stream Video Key Adjustment Bytes
+  09 20 00 00                   |CMD09 - Select Public Key 0
+  01                            |CMD01 - Date/time stamp
+  56 0D 00 00                   | 3/12/1999 3:57:31 PM Pacific Time
+  02 00                         |CMD02 - Program rating - ?Unkown?
+  30                            |CMD30 - Open Filters
+  80                            |CMD80 - USW Update (H ignores, HU processes)
+  15                            | CMD80 Command Length
+  00 01 00                      | If USW = 0 then add update 1 (00 01)
+  ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? | USW 12-byte key written to 2EEC (CAM ID or group-specific)
+  ?? ??                         :
+  05                            | 5 bytes in update packet (3 to write)
+  38 30                         | Write to 3830h
+  8E DC 0A                      | Bytes to write
+  0C 00 00 00 00 00             |CMD0C - Packet signature
+< 90 20                         |Packet response: (26h=00-Filters closed-IRDNumbersMatch set-Add1To2ndResultByte not set)
+
+
+
+
+Basically all USW01 did code-wise was write 3 bytes to 3830: 8E DC 0A. These are the 3 bytes that are SUPPOSED to be there, so, in all reality, USW01 on the HU didn't change anything except write a new 12-byte USW & group-specific key to 2EEC. 
+
+What it DID do is similar to the Dynaceptor ECM - didn't kill the card directly, but made it subject to killing by existing ECM packets. This is why USW01 is repsonsible for the ECM'ing of the 2nd generation input.hex file for HUPro. 
+
+The 1st generation file was killed by an ECM packet that entered the stream on 1/23/2001. This packet was encrypted in an Ins42 packet that begins with Cmd90. In order to circumvent this ECM, the 2nd generation input.hex file wrote 3 bytes to 3830 (the Cmd90 routine) to abort all packets that come along and begin with a Cmd90 thus rejecting the ECM packet. 
+
+By sending USW01 in plaintext (i.e. not in an encrypted packet beginning with a Cmd90) they were able to restore those 3 bytes to the factory values thus disabling the protection. The next occurrence of the 1st generation HU 3M ECM packet to come along killed the cards in the same manner as before. 
+
+Another note: These HU USW packets contain a new 12-byte key that gets written to 2EEC during the addition of the update to the card. If you simply increment the counter to 01 and write the changed bytes (none in this case) to your card as was done to add USW updates manually in the past with H cards, two things will happen: #1 - a potential target will exist since the 12-byte key at 2EEC won't be correct for that card at that USW value and #2 - the card will not take the next update. The current 12-byte key is tested during the update procedure and if it's not correct, the next update is not written. 
+
+This ALSO means that any script, hex, IMG, EXE, whatever that claims to add USW01 to your card for you is flat out lying. There's no way they could have logged the correct 12-byte key for every group of HU cards out there. 
