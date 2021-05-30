@@ -27,7 +27,7 @@ DEFINES += QT_DEPRECATED_WARNINGS
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 linux {
 DEFINES += PYTHON
-LIBS += -lpython2.7
+LIBS += -lpython2.7 -ltar
 }
 
 win32 {
