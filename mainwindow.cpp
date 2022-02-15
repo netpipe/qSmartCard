@@ -139,7 +139,8 @@ int PCSC(int argc, char *argv[]) {
     CHECK_RESPONSE(pbRecvBuffer, dwRecvLength);
 
     for(i=0; i<dwRecvLength-2; i++)
-        printf("%c", pbRecvBuffer[i]);
+        qDebug() << pbRecvBuffer[i];
+       // printf("%c", pbRecvBuffer[i]);
 
     rv = SCardDisconnect(hCard, SCARD_LEAVE_CARD);
     CHECK("SCardDisconnect", rv);
@@ -179,7 +180,9 @@ void MainWindow::on_pushButton_clicked()
 
     QString fileslist;
      fileslist.append("blank,");
-  //   fileslist.append("-f,");
+     //fileslist.append("blank,00,10");
+    fileslist.append("00,");
+    fileslist.append("10,");
      QByteArray array = fileslist.toLocal8Bit();
      char* buffer = array.data();
 
