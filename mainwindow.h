@@ -20,6 +20,8 @@ private slots:
 
         void qtPython();
     void settext();
+    void on_pushButton_2_clicked();
+
 private:
     Ui::MainWindow *ui;
 };

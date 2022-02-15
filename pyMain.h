@@ -33,7 +33,7 @@ void ExecuteScript(QString scriptname);
 
 void MainWindow::settext(){
 
- //   ui->label->setText(test3.toLatin1());
+    ui->label->setText(test3.toLatin1());
 
 }
 
