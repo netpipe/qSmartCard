@@ -139,7 +139,7 @@ int PCSC(int argc, char *argv[]) {
     CHECK_RESPONSE(pbRecvBuffer, dwRecvLength);
 
     for(i=0; i<dwRecvLength-2; i++)
-        qDebug() << pbRecvBuffer[i];
+        qDebug() << QString::number( pbRecvBuffer[i], 16 ).toUpper();
        // printf("%c", pbRecvBuffer[i]);
 
     rv = SCardDisconnect(hCard, SCARD_LEAVE_CARD);
